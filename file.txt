@@ -1,0 +1,82 @@
+
+// http://iquilezles.org/www/articles/distfunctions2d/distfunctions2d.htm
+float equiTri(vec2 p){
+    float side = sqrt(3.0);
+    p.x = abs(p.x) - 1.0;
+    p.y = p.y +1.0/side;
+    if(p.x + side*p.y > 0.0){
+        p = vec2(p.x - side*p.y, -side*p.x - p.y)/2.0;
+    }
+    p.x -= clamp(p.x,-2.0,0.0);
+    return -length(p)*sign(p.y);
+}
+
+// Rotate around a coordinate axis (i.e. in a plane perpendicular to that axis) by angle <a>.
+// Read like this: R(p.xz, a) rotates "x towards z".
+// This is fast if <a> is a compile-time constant and slower (but still practical) if not.
+void pR(inout vec2 p, float a) {
+    p = cos(a)*p + sin(a)*vec2(p.y, -p.x);
+}
+
+
+// http://www.iquilezles.org/www/articles/palettes/palettes.htm
+// As t runs from 0 to 1 (our normalized palette index or domain), 
+//the cosine oscilates c times with a phase of d. 
+//The result is scaled and biased by a and b to meet the desired constrast and brightness.
+vec3 cosPalette( float t, vec3 a, vec3 b, vec3 c, vec3 d )
+{
+    return a + b*cos( 6.28318*(c*t+d) );
+}
+
+// void main () {
+//     vec2 position = uv();
+//     position *= 2.0;
+// 	//gl_FragColor = vec4(vec3(.2,(position.y*.3),0), 1.0);
+// 	float shape = equiTri(position);
+// 	gl_FragColor = vec4(clamp(shape, 0.,0.75),vec3(.2,(position.y*.3),0));
+// }
+
+float sdCircle( vec2 p, float r )
+{
+  return length(p) - r;
+}
+
+float smin( float a, float b, float k )
+{
+    float h = clamp( 0.5+0.5*(b-a)/k, 0.0, 1.0 );
+    return mix( b, a, h ) - k*h*(1.0-h);
+}
+
+
+// Repeat in two dimensions
+vec2 pMod2(inout vec2 p, vec2 size) {
+    vec2 c = floor((p + size*0.5)/size);
+    p = mod(p + size*0.5,size) - size*0.5;
+    return c;
+}
+
+
+
+
+void main () {
+    vec2 position = uv();
+    position *= 2.0;
+    vec2 triPosition = position;
+    
+    pR(triPosition,-time);
+	//gl_FragColor = vec4(vec3(.2,(position.y*.3),0), 1.0);
+	float shape = equiTri(triPosition);
+	
+	position += sin(time);
+	pMod2(position, vec2(2.0));
+	shape = smin(sdCircle(position, 0.5),shape,0.4);
+	
+	vec3 a = vec3(0.5,0.5,0.5);
+	vec3 b = vec3(0.5,0.5,0.5);
+	vec3 c = vec3(2.0,1.0,0.0);
+	vec3 d = vec3(0.5,0.2,0.25);
+	
+	vec3 color = cosPalette(shape+time*.05,a,b,c,d);
+	
+	gl_FragColor = vec4(color,1);
+}
